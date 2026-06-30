@@ -1,54 +1,160 @@
-# LearnCrewai Crew
+# CrewAI Multi-Agent Starter
 
-Welcome to the LearnCrewai Crew project, powered by [crewAI](https://crewai.com). This template is designed to help you set up a multi-agent AI system with ease, leveraging the powerful and flexible framework provided by crewAI. Our goal is to enable your agents to collaborate effectively on complex tasks, maximizing their collective intelligence and capabilities.
+> A minimal, well-documented **multi-agent system** built with [CrewAI](https://crewai.com):
+> a sequential crew where a **researcher** agent investigates a topic and a
+> **reporting analyst** agent turns the findings into a polished Markdown report.
+> Scaffolded with **uv** and the **CrewAI CLI** (classic Python/YAML structure) —
+> a clean reference for how CrewAI projects are wired.
 
-## Installation
+🇧🇷 _A versão em português está no final._
 
-Ensure you have Python >=3.10 <3.14 installed on your system. This project uses [UV](https://docs.astral.sh/uv/) for dependency management and package handling, offering a seamless setup and execution experience.
+---
 
-First, if you haven't already, install uv:
+## What it is
 
-```bash
-pip install uv
+A clean starting point for learning and building with CrewAI. Out of the box it
+runs a two-agent **pipeline**:
+
+- **Researcher** — gathers the 10 most relevant points about a topic.
+- **Reporting Analyst** — expands those points into a full Markdown report (`report.md`).
+
+The agents run in a **sequential process**, so the researcher's output automatically
+becomes the analyst's context. Everything that defines *behaviour* (agent personas,
+task instructions) lives in **YAML**; everything that defines *wiring* lives in a
+small amount of **Python**.
+
+## How it works
+
+```
+              inputs: { topic, current_year }
+                            │
+                            ▼
+                      Crew.kickoff()  ──  Process.sequential
+                            │
+      ┌─────────────────────┴──────────────────────┐
+      ▼                                             ▼
+  researcher                                 reporting_analyst
+  research_task          ──── context ───▶    reporting_task
+  "find 10 key bullets"                       "expand into a full report"
+      │                                             │
+      ▼                                             ▼
+  10 bullet points  ───────────────────────▶    report.md
 ```
 
-Next, navigate to your project directory and install the dependencies:
+## The mental model
 
-(Optional) Lock the dependencies and install them by using the CLI command:
+CrewAI is built on three abstractions — internalising these makes everything else obvious:
+
+| Concept | What it is | Where it lives |
+|---|---|---|
+| **Agent** | A worker with a persona (`role` / `goal` / `backstory`) and an LLM | `config/agents.yaml` + `@agent` methods in `crew.py` |
+| **Task** | A unit of work: an instruction (`description`) + a definition of done (`expected_output`) | `config/tasks.yaml` + `@task` methods in `crew.py` |
+| **Crew** | The orchestrator that runs agents over tasks with a `Process` | the `@crew` method in `crew.py` |
+
+The split between **declarative config (YAML)** and **wiring (Python)** is deliberate:
+you can iterate on a persona or a task's "definition of done" without touching code.
+
+## Project structure
+
+```
+src/learn_crewai/
+├── main.py            # entry points (run / train / replay / test) + inputs
+├── crew.py            # @CrewBase class: wires agents + tasks into a Crew
+├── config/
+│   ├── agents.yaml    # agent personas (role / goal / backstory)
+│   └── tasks.yaml     # task instructions + expected_output
+└── tools/
+    └── custom_tool.py # example BaseTool (Pydantic args schema)
+knowledge/             # example knowledge source
+pyproject.toml         # dependencies + CLI entry points (run_crew → main:run)
+```
+
+## Quickstart
+
+Prerequisites: [uv](https://docs.astral.sh/uv/), Python 3.12, and an OpenAI API key.
+
 ```bash
+# 1. Install dependencies (creates .venv + uv.lock)
 crewai install
+
+# 2. Configure your key — create a .env file with:
+#      MODEL=gpt-4o-mini
+#      OPENAI_API_KEY=sk-...
+
+# 3. Run the crew (writes report.md in the project root)
+crewai run
 ```
-### Customizing
 
-**Add your `OPENAI_API_KEY` into the `.env` file**
+Change the `topic` in [`main.py`](src/learn_crewai/main.py) to research anything you like.
 
-- Modify `src/learn_crewai/config/agents.yaml` to define your agents
-- Modify `src/learn_crewai/config/tasks.yaml` to define your tasks
-- Modify `src/learn_crewai/crew.py` to add your own logic, tools and specific args
-- Modify `src/learn_crewai/main.py` to add custom inputs for your agents and tasks
+## Swap the LLM provider in one line
 
-## Running the Project
+CrewAI routes through [LiteLLM](https://docs.litellm.ai), so switching providers is
+just the `MODEL` variable in `.env` — the agent and task code never changes:
 
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
+```dotenv
+MODEL=gpt-4o-mini          # OpenAI (default)
+# MODEL=ollama/llama3      # local Ollama — no API key, runs offline
+```
+
+Any LiteLLM-supported provider works (OpenAI, Anthropic, Mistral, Ollama, and many
+more) — set `MODEL` and supply that provider's API key. Some native providers need
+an extra (e.g. an additional install) and their own key.
+
+## Tech stack
+
+Python 3.12 · [CrewAI](https://crewai.com) · LiteLLM · Pydantic · **uv** · YAML-driven config
+
+## License
+
+[MIT](LICENSE).
+
+---
+
+# 🇧🇷 Português
+
+> Um **sistema multi-agente** mínimo e bem documentado, feito com
+> [CrewAI](https://crewai.com): uma crew sequencial onde um agente **pesquisador**
+> investiga um tópico e um **analista de relatórios** transforma os achados num
+> relatório Markdown. Criado com **uv** e a **CLI do CrewAI** (estrutura clássica
+> Python/YAML).
+
+## O que é
+
+Um ponto de partida limpo para aprender e construir com CrewAI. De fábrica, roda um
+pipeline de dois agentes:
+
+- **Pesquisador** — levanta os 10 pontos mais relevantes sobre um tópico.
+- **Analista de Relatórios** — expande esses pontos num relatório Markdown completo (`report.md`).
+
+Os agentes rodam em **processo sequencial**: a saída do pesquisador vira
+automaticamente o contexto do analista. O *comportamento* (personas, instruções)
+fica em **YAML**; a *fiação*, em pouco **Python**.
+
+## Modelo mental
+
+| Conceito | O que é | Onde fica |
+|---|---|---|
+| **Agent** | Um trabalhador com persona (`role`/`goal`/`backstory`) e um LLM | `config/agents.yaml` + métodos `@agent` |
+| **Task** | Uma unidade de trabalho: instrução (`description`) + critério de pronto (`expected_output`) | `config/tasks.yaml` + métodos `@task` |
+| **Crew** | O orquestrador que roda agents sobre tasks com um `Process` | método `@crew` em `crew.py` |
+
+A separação entre **config declarativa (YAML)** e **fiação (Python)** é proposital:
+dá para iterar numa persona ou no "critério de pronto" de uma task sem tocar no código.
+
+## Como rodar
+
+Pré-requisitos: [uv](https://docs.astral.sh/uv/), Python 3.12 e uma chave da OpenAI.
 
 ```bash
-$ crewai run
+crewai install                # instala deps (.venv + uv.lock)
+# crie um .env com MODEL=gpt-4o-mini e OPENAI_API_KEY=sk-...
+crewai run                    # gera report.md na raiz do projeto
 ```
 
-This command initializes the learn_crewai Crew, assembling the agents and assigning them tasks as defined in your configuration.
+Troque o `topic` em [`main.py`](src/learn_crewai/main.py) para pesquisar qualquer
+assunto. Para trocar de provedor de LLM, basta mudar a linha `MODEL=` no `.env`.
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+## Licença
 
-## Understanding Your Crew
-
-The learn_crewai Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
-
-## Support
-
-For support, questions, or feedback regarding the LearnCrewai Crew or crewAI.
-- Visit our [documentation](https://docs.crewai.com)
-- Reach out to us through our [GitHub repository](https://github.com/joaomdmoura/crewai)
-- [Join our Discord](https://discord.com/invite/X4JWnZnxPb)
-- [Chat with our docs](https://chatg.pt/DWjSBZn)
-
-Let's create wonders together with the power and simplicity of crewAI.
+[MIT](LICENSE).
